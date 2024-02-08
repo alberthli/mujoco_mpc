@@ -7,19 +7,20 @@
     <mesh file="algr_fixed_angle_mount_1inch.obj"/>
   </asset>
 
-  <option integrator="implicitfast" iterations="100" ls_iterations="50"/>
+  <!-- time step 0.001 -->
+  <option integrator="implicitfast" iterations="100" ls_iterations="50" timestep="0.001"/>
 
   <!-- changing contact model, default stiffness=-2500 damping=-100 -->
   <!-- pretty good, stiffness=-3000 damping=-200 -->
   <default>
-    <geom solref="-3000 -300"/>
+    <geom solref="-3000 -450"/>
   </default>
 
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="5" />
     <numeric name="agent_horizon" data="0.3" />
-    <numeric name="agent_timestep" data="0.006" />
+    <numeric name="agent_timestep" data="0.005" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="1" />
     <numeric name="sampling_exploration" data="0.4" />
@@ -59,7 +60,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".2"/>
+    <geom friction=".3"/>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->
@@ -80,7 +81,7 @@
     <!-- Residuals -->
     <user name="Cube Position" dim="3" user="1 100 0 100 0.02 2"/>
     <!-- <user name="Cube Position" dim="3" user="0 50 0 100"/> -->
-    <user name="Cube Orientation" dim="3" user="0 15.0 0 100" />
+    <user name="Cube Orientation" dim="3" user="0 50.0 0 100" />
     <user name="Cube Velocity" dim="3" user="0 0 0 20" />
     <user name="Actuation" dim="16" user="0 0 0.0 10" />
     <user name="Grasp" dim="16" user="0 0.0 0.0 10" />

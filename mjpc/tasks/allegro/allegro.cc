@@ -49,23 +49,6 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   // difference between the cube position and goal position
   mju_sub3(residual + counter, cube_position, cube_goal_position);
-
-  // penalty if the cube's x dimension is outside the hand/on edges
-  if (cube_position[0] < -0.1 + 0.140696023 ||
-      cube_position[0] > 0.03 + 0.140696023) {
-    residual[counter] *= 5.0;
-  }
-
-  // penalty if the cube's y dimension is near edges
-  if (cube_position[1] < -0.03 - 0.005106107 ||
-      cube_position[1] > 0.03 - 0.005106107) {
-    residual[counter + 1] *= 5.0;
-  }
-
-  // penalty if the cube's z height is below the palm
-  if (cube_position[2] < -0.03) {
-    residual[counter + 2] *= 5.0;
-  }
   counter += 3;
 
   // ---------- Cube orientation ----------
@@ -75,6 +58,33 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_normalize4(goal_cube_orientation);
 
   mju_subQuat(residual + counter, goal_cube_orientation, cube_orientation);
+  // penalty if the cube's x dimension is outside the hand/on edges
+  // bool downweight_orientation = false;
+  if (cube_position[0] < -0.1 + 0.133823154 ||
+      cube_position[0] > 0.03 + 0.133823154) {
+    residual[counter - 3] *= 10.0;  // pos
+    // downweight_orientation = true;
+  }
+
+  // penalty if the cube's y dimension is near edges
+  if (cube_position[1] < -0.04 - 0.005106107 ||
+      cube_position[1] > 0.02 - 0.005106107) {
+    residual[(counter + 1) - 3] *= 10.0;  // pos
+    // downweight_orientation = true;
+  }
+
+  // penalty if the cube's z height is below the palm
+  if (cube_position[2] < -0.03 - 0.048353794) {
+    residual[(counter + 2) - 3] *= 10.0;  // pos
+    // downweight_orientation = true;
+  }
+
+  // if position is upweighted, downweight orientation costs
+  // if (downweight_orientation) {
+  //   residual[counter] *= 0.1;  // orientation
+  //   residual[counter + 1] *= 0.1;  // orientation
+  //   residual[counter + 2] *= 0.1;  // orientation
+  // }
   counter += 3;
 
   // ---------- Cube linear velocity ----------
