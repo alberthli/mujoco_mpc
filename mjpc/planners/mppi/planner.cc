@@ -47,22 +47,17 @@ void MPPIPlanner::Initialize(mjModel* model, const Task& task) {
   // task
   this->task = &task;
 
-  // rollout parameters
-  timestep_power = 1.0;
-
   // sampling noise
-  noise_exploration_ = GetNumberOrDefault(0.1, model, "sampling_exploration");
+  noise_exploration_ = GetNumberOrDefault(0.1, model, "mppi_exploration");
 
   // set number of trajectories to rollout
-  num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
+  num_trajectory_ = GetNumberOrDefault(10, model, "mppi_trajectories");
 
   // set the temperature of the cost energy distribution
-  lambda_ = GetNumberOrDefault(0.01, model, "lambda");
+  lambda_ = GetNumberOrDefault(0.01, model, "mppi_lambda");
 
-  // initialize weights
-  std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
-  denom = 0.0;
-  temp_weight = 0.0;
+  // set action noise weight
+  gamma_ = GetNumberOrDefault(0.0, model, "mppi_gamma");
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -94,7 +89,7 @@ void MPPIPlanner::Allocate() {
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
 
   // allocating weights for MPPI update
-  weight_vec.resize(kMaxTrajectory);
+  weights_.resize(kMaxTrajectory);
 
   // need to initialize an arbitrary order of the trajectories
   trajectory_order.resize(kMaxTrajectory);
@@ -159,11 +154,6 @@ void MPPIPlanner::SetState(const State& state) {
 
 // optimize nominal policy using random sampling
 void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
-  // check horizon
-  if (horizon != nominal_trajectory.horizon) {
-    NominalTrajectory(horizon, pool);
-  }
-
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
@@ -210,36 +200,25 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
 
-  // reset parameters scratch to zero
-  std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
-
-  // reset nominal trajectory
-  nominal_trajectory.Reset(horizon);
-
-  // set nominal trajectory times
-  for (int tt = 0; tt <= horizon; tt++) {
-    nominal_trajectory.times[tt] = time + tt * model->opt.timestep;
-  }
-
   // best trajectory
-  int idx = trajectory_order[0];
+  int idx_best = trajectory_order[0];
 
   // ----- MPPI update ----- //
-  temp_weight = 0.0;  // storage for intermediate weights
-  denom = 0.0;
-  std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
+  double total_weight = 0.0;
   double lambda = lambda_;  // fixed in this function
+  std::fill(weights_.begin(), weights_.end(), 0.0);
 
   // (1) computing MPPI weights
   for (int i = 0; i < num_trajectory; i++) {
     // subtract a baseline for variance reduction + numerical stability
-    double diff = trajectory[i].total_return - trajectory[idx].total_return;
-    temp_weight = std::exp(-diff / lambda);
-    denom += temp_weight;
-    weight_vec[i] = temp_weight;
+    double diff =
+        trajectory[i].total_return - trajectory[idx_best].total_return;
+    weights_[i] = std::exp(-diff / lambda);
+    total_weight += weights_[i];
   }
 
   // (2) updating the distribution parameters
+  double avg_return = 0.0;
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
   for (int i = 0; i < num_trajectory; i++) {
     // The vanilla MPPI update looks like
@@ -251,24 +230,16 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // where \sum_i{w_i} = 1, so
     //     mu <- \sum_i{w_i * (mu + dU)}, where mu + dU = U.
 
+    // normalized weight
+    double norm_weight = weights_[i] / total_weight;
+
     // add to parameters of nominal policy
     mju_addToScl(parameters_scratch.data(),
-                 candidate_policy[i].parameters.data(), weight_vec[i] / denom,
+                 candidate_policy[i].parameters.data(), norm_weight,
                  policy.num_parameters);
 
-    // add to nominal trajectory
-    mju_addToScl(nominal_trajectory.actions.data(),
-                 trajectory[i].actions.data(), weight_vec[i] / denom,
-                 model->nu * (horizon - 1));
-    mju_addToScl(nominal_trajectory.trace.data(), trajectory[i].trace.data(),
-                 weight_vec[i] / denom, 3 * horizon);
-    mju_addToScl(nominal_trajectory.residual.data(),
-                 trajectory[i].residual.data(), weight_vec[i] / denom,
-                 nominal_trajectory.dim_residual * horizon);
-    mju_addToScl(nominal_trajectory.costs.data(), trajectory[i].costs.data(),
-                 weight_vec[i] / denom, horizon);
-    nominal_trajectory.total_return +=
-        trajectory[i].total_return * weight_vec[i] / denom;
+    // add return
+    avg_return += trajectory[i].total_return * norm_weight;
   }
 
   // update
@@ -278,15 +249,14 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // improvement: compare nominal to elite average
-  improvement = mju_max(
-      nominal_trajectory.total_return - trajectory[idx].total_return, 0.0);
+  improvement = mju_max(avg_return - trajectory[idx_best].total_return, 0.0);
 
   // stop timer
   policy_update_compute_time = GetDuration(policy_update_start);
 }
 
 // compute trajectory using nominal policy
-void MPPIPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
+void MPPIPlanner::NominalTrajectory(int horizon) {
   // set policy
   auto nominal_policy = [&cp = resampled_policy](
                             double* action, const double* state, double time) {
@@ -294,9 +264,12 @@ void MPPIPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   };
 
   // rollout nominal policy
-  nominal_trajectory.Rollout(nominal_policy, task, model, data_[0].get(),
-                             state.data(), time, mocap.data(), userdata.data(),
-                             horizon);
+  nominal_trajectory.Rollout(nominal_policy, task, model,
+                             data_[ThreadPool::WorkerId()].get(), state.data(),
+                             time, mocap.data(), userdata.data(), horizon);
+}
+void MPPIPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
+  NominalTrajectory(horizon);
 }
 
 // set action from policy
@@ -335,11 +308,10 @@ void MPPIPlanner::ResamplePolicy(int horizon) {
   mju_copy(resampled_policy.times.data(), times_scratch.data(),
            num_spline_points);
 
-  // time step power scaling
-  PowerSequence(resampled_policy.times.data(), time_shift,
-                resampled_policy.times[0],
-                resampled_policy.times[num_spline_points - 1], timestep_power,
-                num_spline_points);
+  LinearRange(resampled_policy.times.data(), time_shift,
+              resampled_policy.times[0], num_spline_points);
+
+  resampled_policy.representation = policy.representation;
 }
 
 // add random noise to nominal policy
@@ -382,13 +354,16 @@ void MPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
   // reset noise compute time
   noise_compute_time = 0.0;
 
+  // lock gamma
+  double gamma = gamma_;
+
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   i]() {
+                   gamma, i]() {
       // copy nominal policy and sample noise
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -414,9 +389,26 @@ void MPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
       s.trajectory[i].Rollout(
           sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
           state.data(), time, mocap.data(), userdata.data(), horizon);
+
+      // MPPI action noise cost
+      double c = 0.0;
+      double* u = s.trajectory[i].actions.data();
+      double* eps = s.noise.data() + i * (model->nu * kMaxTrajectoryHorizon);
+      for (int t = 0; t < horizon - 1; t++) {
+        for (int j = 0; j < model->nu; j++) {
+          c += u[t * model->nu + j] * eps[t * model->nu + j] /
+               s.noise_exploration_;
+        }
+      }
+      s.trajectory[i].total_return += gamma * c;
     });
   }
-  pool.WaitCount(count_before + num_trajectory);
+
+  // nominal
+  pool.Schedule([&s = *this, horizon]() { s.NominalTrajectory(horizon); });
+
+  // wait
+  pool.WaitCount(count_before + num_trajectory + 1);
   pool.ResetCount();
 }
 
@@ -439,11 +431,14 @@ void MPPIPlanner::Traces(mjvScene* scn) {
   double zero3[3] = {0};
   double zero9[9] = {0};
 
+  // lock
+  int num_trajectory = num_trajectory_;
+
   // best
   auto best = this->BestTrajectory();
 
   // sample traces
-  for (int k = 0; k < num_trajectory_; k++) {
+  for (int k = 0; k < num_trajectory; k++) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom + task->num_trace > scn->maxgeom) break;
@@ -452,8 +447,9 @@ void MPPIPlanner::Traces(mjvScene* scn) {
         mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
                      color);
 
-        // elite index
+        // sorted index
         int idx = trajectory_order[k];
+
         // make geometry
         mjv_makeConnector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
@@ -480,6 +476,7 @@ void MPPIPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration_, "0 1"},
       {mjITEM_SLIDERNUM, "Temperature", 2, &lambda_, "0.01 1.0"},
+      {mjITEM_SLIDERNUM, "Gamma", 2, &gamma_, "0.0 1.0"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

@@ -57,6 +57,7 @@ class MPPIPlanner : public Planner {
 
   // compute trajectory using nominal policy
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
+  void NominalTrajectory(int horizon);
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state, double time,
@@ -84,6 +85,11 @@ class MPPIPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.num_spline_points * policy.model->nu;
+  }
+
   // ----- members ----- //
   mjModel* model;
   const Task* task;
@@ -106,13 +112,10 @@ class MPPIPlanner : public Planner {
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
-  Trajectory nominal_trajectory;  // the weighted traj of rollouts
+  Trajectory nominal_trajectory;  // the weighted trajectory of rollouts
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
-
-  // rollout parameters
-  double timestep_power;
 
   // ----- noise ----- //
   double noise_exploration_;  // standard deviation for sampling normal: N(0,
@@ -130,11 +133,10 @@ class MPPIPlanner : public Planner {
   double rollouts_compute_time;
   double policy_update_compute_time;
 
-  // mppi
-  double lambda_;                   // the temp of the energy-based model
-  std::vector<double> weight_vec;  // MPPI weights
-  double denom;                    // sum of weight_vec
-  double temp_weight;              // temp variable for storing weights
+  // MPPI variables
+  double lambda_;                // the temp of the energy-based model
+  std::vector<double> weights_;  // MPPI weights
+  double gamma_;                 // action noise weight
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
