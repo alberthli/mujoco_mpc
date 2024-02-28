@@ -1,6 +1,6 @@
 diff --git a/right_hand_modified.xml b/right_hand_modified.xml
---- right_hand.xml      2024-02-28 11:42:12.606580701 -0800
-+++ right_hand_modified.xml     2024-02-28 11:43:02.947304406 -0800
+--- right_hand.xml      2024-02-28 13:57:35.752131961 -0800
++++ right_hand_modified.xml     2024-02-28 14:17:24.659738175 -0800
 @@ -6,7 +6,7 @@
    <default>
      <default class="allegro_right">
@@ -145,9 +145,9 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
 +    <jointpos name="thj1_sensor" joint="thj1"/>
 +    <jointpos name="thj2_sensor" joint="thj2"/>
 +    <jointpos name="thj3_sensor" joint="thj3"/>
-+    <framepos name="trace1" objtype="body" objname="rf_tip"/>
-+    <framepos name="trace2" objtype="body" objname="ff_tip"/>
-+    <framepos name="trace3" objtype="body" objname="mf_tip"/>
-+    <framepos name="trace4" objtype="body" objname="th_tip"/>
++    <framepos name="trace0" objtype="body" objname="rf_tip"/>
++    <framepos name="trace1" objtype="body" objname="ff_tip"/>
++    <framepos name="trace2" objtype="body" objname="mf_tip"/>
++    <framepos name="trace3" objtype="body" objname="th_tip"/>
 +  </sensor>
  </mujoco>

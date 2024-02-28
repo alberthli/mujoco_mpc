@@ -130,6 +130,10 @@ void Batch::Initialize(const mjModel* model) {
   force_measurement_cache_.Initialize(nv, max_history_);
   force_prediction_cache_.Initialize(nv, max_history_);
 
+  // timestep
+  this->model->opt.timestep = GetNumberOrDefault(this->model->opt.timestep,
+                                                 model, "estimator_timestep");
+
   // -- GUI data -- //
   // time step
   gui_timestep_ = model->opt.timestep;
@@ -714,12 +718,15 @@ void Batch::InitializeFilter() {
 
   // filter settings
   settings.gradient_tolerance = 1.0e-6;
-  settings.max_smoother_iterations = 1;
-  settings.max_search_iterations = 10;
+  settings.max_smoother_iterations = 100;
+  settings.max_search_iterations = 1000;
   filter_settings.recursive_prior_update = true;
   settings.first_step_position_sensors = true;
   settings.last_step_position_sensors = false;
   settings.last_step_velocity_sensors = false;
+  settings.regularization_initial = 1.0e-6;
+  settings.regularization_scaling = 5.0;
+  // settings.search_type = kLineSearch;
 
   // check for number of parameters
   if (nparam_ != 0) {
