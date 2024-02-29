@@ -213,7 +213,7 @@ class BuildCMakeExtension(build_ext.build_ext):
   def _configure_and_build_filter_server(self):
     """Check for CMake."""
     cmake_command = "cmake"
-    build_cfg = "Debug"
+    build_cfg = "Release"
     mujoco_mpc_root = Path(__file__).parent.parent
     mujoco_mpc_build_dir = mujoco_mpc_root / "build"
     cmake_configure_args = [
@@ -292,7 +292,8 @@ setuptools.setup(
     extras_require={
         "test": [
             "absl-py",
-            "mujoco >= 2.3.3",
+            "mujoco >= 3.1.1",
+            "mujoco-mjx",
         ],
     },
     ext_modules=[CMakeExtension("filter_server")],

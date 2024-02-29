@@ -56,8 +56,18 @@ set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
 set(MUJOCO_MPC_MUJOCO_GIT_TAG
-    893c4042302e5a5738dbc462466e746f2bbc1ea5
+    24eb4c9f092da7dd245a116841a5325a0fb359b9
     CACHE STRING "Git revision for MuJoCo."
+)
+
+set(MUJOCO_MPC_MENAGERIE_GIT_TAG
+    8ef01e87fffaa8ec634a4826c5b2092733b2f3c8
+    CACHE STRING "Git revision for MuJoCo Menagerie."
+)
+
+set(MUJOCO_MPC_DM_CONTROL_GIT_TAG
+    774f46182140106e22725914aad3c6299ed91edd
+    CACHE STRING "Git revision for dm_control."
 )
 
 findorfetch(
@@ -160,12 +170,23 @@ unset(BUILD_SHARED_LIBS_OLD)
 FetchContent_Declare(
   menagerie
   GIT_REPOSITORY https://github.com/google-deepmind/mujoco_menagerie.git
-  GIT_TAG main
+  GIT_TAG ${MUJOCO_MPC_MENAGERIE_GIT_TAG}
 )
 
 FetchContent_GetProperties(menagerie)
 if(NOT menagerie_POPULATED)
   FetchContent_Populate(menagerie)
+endif()
+
+FetchContent_Declare(
+  dm_control
+  GIT_REPOSITORY https://github.com/google-deepmind/dm_control.git
+  GIT_TAG ${MUJOCO_MPC_DM_CONTROL_GIT_TAG}
+)
+
+FetchContent_GetProperties(dm_control)
+if(NOT dm_control_POPULATED)
+  FetchContent_Populate(dm_control)
 endif()
 
 if(NOT TARGET lodepng)

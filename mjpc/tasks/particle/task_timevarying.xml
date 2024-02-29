@@ -1,6 +1,7 @@
 <mujoco model="Particle Control">
   <include file="../common.xml"/>
-  <include file="particle.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/point_mass.xml -->
+  <include file="particle_modified.xml" />
 
   <size memory="10K"/>
 
@@ -14,6 +15,10 @@
     <numeric name="sampling_spline_points" data="5" />
     <numeric name="sampling_exploration" data="0.01" />
     <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Pos X Noise" data="0"/>
+    <numeric name="residual_Pos Y Noise" data="0"/>
+    <numeric name="residual_Vel X Noise" data="0"/>
+    <numeric name="residual_Vel Y Noise" data="0"/>
 
     <!-- estimator -->
     <numeric name="estimator" data="0" />

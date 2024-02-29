@@ -29,6 +29,7 @@
 #include <vector>
 
 #include <absl/flags/flag.h>
+#include <absl/random/random.h>
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <glfw_adapter.h>
@@ -40,12 +41,13 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-ABSL_FLAG(std::string, task, "", "Which model to load on startup.");
+ABSL_FLAG(std::string, task, "Allegro",
+          "Which model to load on startup.");
 ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
-ABSL_FLAG(bool, estimator_enabled, false,
+ABSL_FLAG(bool, estimator_enabled, true,
           "If true, estimator loop will run on startup");
 ABSL_FLAG(bool, show_left_ui, true,
           "If true, the left UI (ui0) will be visible on startup");
@@ -189,8 +191,61 @@ void EstimatorLoop(mj::Simulate& sim) {
           mju_copy(estimator->Data()->userdata, d->userdata, m->nuserdata);
         }
 
+        // [DEBUG] add sensor noise to the cube states manually
+        //////////////////////////////////////////////////////////////////////
+        // absl::BitGen gen_;
+        // double std_rot = 0.1;  // stdev for rotational noise in tangent space
+        // double std_pos = 0.005;    // uniform stdev for position noise
+        // double bias_posx = 0.0075;  // bias for position noise
+        // double bias_posy = -0.005;  // bias for position noise
+        // double bias_posz = 0.01;  // bias for position noise
+
+        // // add position noise
+        // std::vector<double> dp = {bias_posx, bias_posy, bias_posz};
+        // dp[0] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+        // dp[1] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+        // dp[2] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+
+        // std::vector<double> pos_cube;
+        // pos_cube.resize(3);
+        // mju_copy(pos_cube.data(), sim.agent->sensor.data() + 37, 3);
+        // mju_addTo3(pos_cube.data(), dp.data());  // update the pos
+
+        // // add quaternion noise
+        // std::vector<double> dv = {0.0, 0.0, 0.0};  // rotational velocity noise
+        // dv[0] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+        // dv[1] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+        // dv[2] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+
+        // std::vector<double> quat_cube;
+        // quat_cube.resize(4);
+        // mju_copy(quat_cube.data(), sim.agent->sensor.data() + 40, 4);
+        // mju_quatIntegrate(quat_cube.data(), dv.data(), 1.0);
+        // mju_normalize4(quat_cube.data());  // normalize the quat for numerics
+
+        // // copy back to the estimator
+        // mju_copy(sim.agent->sensor.data() + 37, pos_cube.data(), 3);
+        // mju_copy(sim.agent->sensor.data() + 40, quat_cube.data(), 4);
+        //////////////////////////////////////////////////////////////////////
+
+        // [NOTE] if using EITHER of the options below, then the associated
+        // debug block in allegro.cc MUST be commented out!
+
+        // [DEBUG OPTION A] hack to visualize the noisy state before updating
+        ///////////////////////////////////////////////////////
+        // mju_copy(d->mocap_pos + 3, sim.agent->sensor.data() + 37, 3);
+        // mju_copy(d->mocap_quat + 4, sim.agent->sensor.data() + 40, 4);
+        ///////////////////////////////////////////////////////
+
         // update filter using latest ctrl and sensor copied from physics thread
         estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
+
+        // [DEBUG OPTION B] hack to visualize the state estimate
+        // [NOTE] only one of these viz debug blocks should be uncommented at once
+        ///////////////////////////////////////////////////////
+        // mju_copy(d->mocap_pos + 3, estimator->Data()->qpos, 3);
+        // mju_copy(d->mocap_quat + 4, estimator->Data()->qpos + 3, 4);
+        ///////////////////////////////////////////////////////
 
         // estimator state to planner
         double* state = estimator->State();
@@ -381,7 +436,11 @@ void PhysicsLoop(mj::Simulate& sim) {
     if (sim.uiloadrequest.load() == 0) {
       // set ground truth state if no active estimator
       if (!sim.agent->ActiveEstimatorIndex() || !sim.agent->estimator_enabled) {
+        // get state from simulation
         sim.agent->state.Set(m, d);
+
+        // modify state
+        sim.agent->ActiveTask()->ModifyState(m, &sim.agent->state);
       }
     }
   }
@@ -392,7 +451,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
 namespace mjpc {
 
-MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
+MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
   // MJPC
   printf("MuJoCo MPC (MJPC)\n");
 
@@ -413,10 +472,11 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
       std::make_unique<mujoco::GlfwAdapter>(),
       std::make_shared<Agent>());
 
+  sim->run = false;  // [DEBUG] sets the simulator to start from paused state
   sim->agent->SetTaskList(std::move(tasks));
   std::string task_name = absl::GetFlag(FLAGS_task);
-  if (task_name.empty()) {
-    sim->agent->gui_task_id = task_id;
+  if (task_name.empty()) {  // shouldn't happen, flag has a default value
+    sim->agent->gui_task_id = 0;
   } else {
     sim->agent->gui_task_id = sim->agent->GetTaskIdByName(task_name);
     if (sim->agent->gui_task_id == -1) {
@@ -519,8 +579,8 @@ mj::Simulate* MjpcApp::Sim() {
   return sim.get();
 }
 
-void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
-  MjpcApp app(std::move(tasks), task_id);
+void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
+  MjpcApp app(std::move(tasks));
   app.Start();
 }
 
