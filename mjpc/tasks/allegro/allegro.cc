@@ -89,55 +89,55 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
 void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   // Check for contact between the cube and the floor
-  int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
-  int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
-  bool on_floor = false;
-  bool new_goal = false;
-  for (int i = 0; i < data->ncon; i++) {
-    mjContact *g = data->contact + i;
-    if ((g->geom1 == cube && g->geom2 == floor) ||
-        (g->geom2 == cube && g->geom1 == floor)) {
-      on_floor = true;
-      break;
-    }
-  }
+  // int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
+  // int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
+  // bool on_floor = false;
+  // bool new_goal = false;
+  // for (int i = 0; i < data->ncon; i++) {
+  //   mjContact *g = data->contact + i;
+  //   if ((g->geom1 == cube && g->geom2 == floor) ||
+  //       (g->geom2 == cube && g->geom1 == floor)) {
+  //     on_floor = true;
+  //     break;
+  //   }
+  // }
 
   // If the cube is on the floor and not moving, reset it
-  double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
+  // double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");  // unused
 
   // If timeout has been reached, reset
   auto duration = std::chrono::duration<double>(
                       std::chrono::steady_clock::now() - time_reset)
                       .count();
 
-  if ((on_floor && mju_norm3(cube_lin_vel) < 0.001) || duration > timeout_) {
-    // reset the timeout if timed out
-    if (duration > timeout_) {
-      time_reset = std::chrono::steady_clock::now();
-    }
+  // if ((on_floor && mju_norm3(cube_lin_vel) < 0.001) || duration > timeout_) {
+  //   // reset the timeout if timed out
+  //   // if (duration > timeout_) {
+  //   //   time_reset = std::chrono::steady_clock::now();
+  //   // }  // [DEBUG] no timeout for now
 
-    int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
-    if (cube_body != -1) {
-      // reset cube
-      int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
-      int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
-      mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
-      mju_zero(data->qvel + jnt_veladr, 6);
+  //   int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
+  //   if (cube_body != -1) {
+  //     // reset cube
+  //     int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
+  //     int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
+  //     mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
+  //     mju_zero(data->qvel + jnt_veladr, 6);
 
-      // reset palm
-      int palm_qposadr = 11;  // goal quat then cube pose come first
-      int palm_veladr = 9;
-      mju_copy(data->qpos + palm_qposadr, model->qpos0 + palm_qposadr, 16);
-      mju_zero(data->qvel + palm_veladr, 16);
+  //     // reset palm
+  //     int palm_qposadr = 7;  // goal quat then cube pose come first
+  //     int palm_veladr = 6;
+  //     mju_copy(data->qpos + palm_qposadr, model->qpos0 + palm_qposadr, 16);
+  //     mju_zero(data->qvel + palm_veladr, 16);
 
-      // reset counter
-      if (rotation_counter > num_best_rots) {
-        num_best_rots = rotation_counter;
-      }
-      prev_best_rots = rotation_counter;
-      rotation_counter = 0;
-    }
-  }
+  //     // reset counter
+  //     if (rotation_counter > num_best_rots) {
+  //       num_best_rots = rotation_counter;
+  //     }
+  //     prev_best_rots = rotation_counter;
+  //     rotation_counter = 0;
+  //   }
+  // }  // [DEBUG] no auto-resetting on hardware
 
   // If the orientation of the cube is close to the goal, change the goal
   double *cube_orientation = SensorByName(model, data, "cube_orientation");
@@ -253,12 +253,12 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     mju_copy(data->mocap_quat, q_goal.data(), 4);
   }
 
-  if (on_floor || new_goal) {
-    // Step the simulation forward
-    mutex_.unlock();
-    mj_forward(model, data);
-    mutex_.lock();
-  }
+  // if (on_floor) {
+  //   // Step the simulation forward
+  //   mutex_.unlock();
+  //   mj_forward(model, data);
+  //   mutex_.lock();
+  // }
 
   // update mocap position
   // [DEBUG] if employing debug hacks in app.cc, this must be commented out!

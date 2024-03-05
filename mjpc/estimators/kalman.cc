@@ -293,6 +293,9 @@ void Kalman::UpdatePrediction() {
                    dynamics_jacobian_.data(), NULL, NULL, NULL);
 
   // integrate state
+  // for (int i = 0; i < 5; i++) {
+  //   mj_step(model, data_);
+  // }
   mj_step(model, data_);
 
   // update state

@@ -47,7 +47,7 @@ ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
-ABSL_FLAG(bool, estimator_enabled, true,
+ABSL_FLAG(bool, estimator_enabled, false,
           "If true, estimator loop will run on startup");
 ABSL_FLAG(bool, show_left_ui, true,
           "If true, the left UI (ui0) will be visible on startup");
@@ -155,7 +155,7 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
 void EstimatorLoop(mj::Simulate& sim) {
   // run until asked to exit
   while (!sim.exitrequest.load()) {
-    if (sim.uiloadrequest.load() == 0) {
+    if (sim.uiloadrequest.load() == 0 && sim.run) {
       // estimator
       int active_estimator = sim.agent->ActiveEstimatorIndex();
       mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();

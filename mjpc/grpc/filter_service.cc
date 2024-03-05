@@ -14,6 +14,19 @@
 
 #include "mjpc/grpc/filter_service.h"
 
+#include <absl/log/check.h>
+#include <absl/status/status.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
+#include <grpcpp/server_context.h>
+#include <grpcpp/support/status.h>
+#include <mujoco/mjmodel.h>
+#include <mujoco/mjvisualize.h>
+#include <mujoco/mjxmacro.h>
+#include <mujoco/mujoco.h>
+
 #include <cstring>
 #include <memory>
 #include <sstream>
@@ -21,14 +34,11 @@
 #include <utility>
 #include <vector>
 
-#include <absl/log/check.h>
-#include <absl/status/status.h>
-#include <grpcpp/server_context.h>
-#include <grpcpp/support/status.h>
-#include <mujoco/mujoco.h>
-
-#include "mjpc/grpc/filter.pb.h"
+#include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
+#include "mjpc/grpc/filter.pb.h"
+#include "mjpc/task.h"
+#include "mjpc/tasks/tasks.h"
 #include "mjpc/utilities.h"
 
 namespace filter_grpc {
@@ -60,46 +70,87 @@ FilterService::~FilterService() {}
 grpc::Status FilterService::Init(grpc::ServerContext* context,
                                  const filter::InitRequest* request,
                                  filter::InitResponse* response) {
+  // [ORIGINAL CODE]
+  //////////////////////////////////////////////////////////////////////////
   // ----- initialize with model ----- //
-  mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
+  // mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
 
-  // convert message
-  if (request->has_model() && request->model().has_mjb()) {
-    std::string_view mjb = request->model().mjb();
-    static constexpr char file[] = "temporary-filename.mjb";
-    // mjVFS structs need to be allocated on the heap, because it's ~2MB
-    auto vfs = std::make_unique<mjVFS>();
-    mj_defaultVFS(vfs.get());
-    mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
-    int file_idx = mj_findFileVFS(vfs.get(), file);
-    memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
-    tmp_model = {mj_loadModel(file, vfs.get()), mj_deleteModel};
-    mj_deleteFileVFS(vfs.get(), file);
-  } else if (request->has_model() && request->model().has_xml()) {
-    std::string_view model_xml = request->model().xml();
-    char load_error[1024] = "";
+  // // convert message
+  // if (request->has_model() && request->model().has_mjb()) {
+  //   std::string_view mjb = request->model().mjb();
+  //   static constexpr char file[] = "temporary-filename.mjb";
+  //   // mjVFS structs need to be allocated on the heap, because it's ~2MB
+  //   auto vfs = std::make_unique<mjVFS>();
+  //   mj_defaultVFS(vfs.get());
+  //   mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
+  //   int file_idx = mj_findFileVFS(vfs.get(), file);
+  //   memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
+  //   tmp_model = {mj_loadModel(file, vfs.get()), mj_deleteModel};
+  //   mj_deleteFileVFS(vfs.get(), file);
+  // } else if (request->has_model() && request->model().has_xml()) {
+  //   std::string_view model_xml = request->model().xml();
+  //   char load_error[1024] = "";
 
-    // TODO(taylor): utilize grpc_agent_util method
-    static constexpr char file[] = "temporary-filename.xml";
-    // mjVFS structs need to be allocated on the heap, because it's ~2MB
-    auto vfs = std::make_unique<mjVFS>();
-    mj_defaultVFS(vfs.get());
-    mj_makeEmptyFileVFS(vfs.get(), file, model_xml.size());
-    int file_idx = mj_findFileVFS(vfs.get(), file);
-    memcpy(vfs->filedata[file_idx], model_xml.data(), model_xml.size());
-    tmp_model = {mj_loadXML(file, vfs.get(), load_error, sizeof(load_error)),
-                 mj_deleteModel};
-    mj_deleteFileVFS(vfs.get(), file);
+  //   // TODO(taylor): utilize grpc_agent_util method
+  //   static constexpr char file[] = "temporary-filename.xml";
+  //   // mjVFS structs need to be allocated on the heap, because it's ~2MB
+  //   auto vfs = std::make_unique<mjVFS>();
+  //   mj_defaultVFS(vfs.get());
+  //   mj_makeEmptyFileVFS(vfs.get(), file, model_xml.size());
+  //   int file_idx = mj_findFileVFS(vfs.get(), file);
+  //   memcpy(vfs->filedata[file_idx], model_xml.data(), model_xml.size());
+  //   tmp_model = {mj_loadXML(file, vfs.get(), load_error, sizeof(load_error)),
+  //                mj_deleteModel};
+  //   mj_deleteFileVFS(vfs.get(), file);
+  // } else {
+  //   mju_error("Failed to create mjModel.");
+  // }
+  //////////////////////////////////////////////////////////////////////////
+
+  // [HACKY CODE] copied from mjpc/agent.cc with relevant imports
+  //////////////////////////////////////////////////////////////////////////
+  mjModel* mnew = nullptr;
+  constexpr int kErrorLength = 1024;
+  char load_error[kErrorLength] = "";
+  std::vector<std::shared_ptr<mjpc::Task>> tasks_ = mjpc::GetTasks();
+
+  if (model_override_) {
+    mnew = mj_copyModel(nullptr, model_override_.get());
   } else {
-    mju_error("Failed to create mjModel.");
+    // otherwise use the task's model
+    std::string filename =
+        tasks_[1]->XmlPath();  // [DEBUG] hardcode allegro task, which is task 1
+    // make sure filename is not empty
+    if (filename.empty()) {
+      return {};
+    }
+
+    if (absl::StrContains(filename, ".mjb")) {
+      mnew = mj_loadModel(filename.c_str(), nullptr);
+      if (!mnew) {
+        ::mujoco::util_mjpc::strcpy_arr(load_error, "could not load binary model");
+      }
+    } else {
+      mnew = mj_loadXML(filename.c_str(), nullptr, load_error, kErrorLength);
+      // remove trailing newline character from load_error
+      if (load_error[0]) {
+        int error_length = ::mujoco::util_mjpc::strlen_arr(load_error);
+        if (load_error[error_length - 1] == '\n') {
+          load_error[error_length - 1] = '\0';
+        }
+      }
+    }
   }
+  model_override_ = {mnew, mj_deleteModel};
+  //////////////////////////////////////////////////////////////////////////
 
   // move
-  model_override_ = std::move(tmp_model);
+  // model_override_ = std::move(tmp_model);  // [ORIGINAL]
   mjModel* model = model_override_.get();
 
   // initialize filters
-  filter_ = mjpc::GetNumberOrDefault(0, model, "estimator");
+  // filter_ = mjpc::GetNumberOrDefault(0, model, "estimator");  // [ORIGINAL]
+  filter_ = 1;  // [DEBUG] hardcode Kalman filter
   for (const auto& filter : filters_) {
     filter->Initialize(model);
     filter->Reset();
