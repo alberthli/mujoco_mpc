@@ -392,3 +392,9 @@ class Agent(contextlib.AbstractContextManager):
       if value.quat is not None:
         request.mocap[key].quat.extend(value.quat)
     self.stub.SetAnything(request)
+  
+  def set_ctrl(self, ctrl: npt.ArrayLike):
+    if hasattr(ctrl, "flatten"):
+      ctrl = ctrl.flatten()
+    request = agent_pb2.SetCtrlRequest(ctrl=ctrl)
+    self.stub.SetCtrl(request)

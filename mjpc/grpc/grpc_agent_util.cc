@@ -60,6 +60,8 @@ using ::agent::SetCostWeightsRequest;
 using ::agent::SetModeRequest;
 using ::agent::SetStateRequest;
 using ::agent::SetTaskParametersRequest;
+using ::agent::SetCtrlRequest;
+using ::agent::SetCtrlResponse;
 using ::agent::Residual;
 using ::agent::ValueAndWeight;
 
@@ -484,6 +486,17 @@ grpc::Status SetMocap(const ::google::protobuf::Map<std::string, Pose>& mocap,
   return grpc::Status::OK;
 }
 }  // namespace
+
+grpc::Status SetCtrl(const SetCtrlRequest* request, mjpc::Agent* agent,
+                     const mjModel* model, mjData* data) {
+  const double* ctrl = request->ctrl().data();
+  if (request->ctrl().size() != agent->GetModel()->nu) {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        absl::StrFormat("Invalid control size: %d", request->ctrl().size()));
+  }
+  mju_copy(data->ctrl, ctrl, model->nu);
+  return grpc::Status::OK;
+}
 
 grpc::Status SetAnything(const SetAnythingRequest* request, mjpc::Agent* agent,
                          const mjModel* model, mjData* data,

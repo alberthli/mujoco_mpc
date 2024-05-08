@@ -47,8 +47,8 @@
     <!-- estimator -->
     <numeric name="estimator" data="1"/>
     <numeric name="estimator_timestep" data="0.003" />
-    <numeric name="estimator_sensor_start" data="10" />
-    <numeric name="estimator_number_sensor" data="17" />
+    <numeric name="estimator_sensor_start" data="9" />
+    <numeric name="estimator_number_sensor" data="18" />
     <numeric name="estimator_sensor_noise_scale" data="0.0025" />
 
     <!-- state noise -->

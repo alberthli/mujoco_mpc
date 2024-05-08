@@ -57,6 +57,8 @@ grpc::Status GetMode(const agent::GetModeRequest* request, mjpc::Agent* agent,
 grpc::Status GetAllModes(const agent::GetAllModesRequest* request,
                          mjpc::Agent* agent,
                          agent::GetAllModesResponse* response);
+grpc::Status SetCtrl(const agent::SetCtrlRequest* request, mjpc::Agent* agent,
+                     const mjModel* model, mjData* data);
 grpc::Status SetAnything(const agent::SetAnythingRequest* request,
                          mjpc::Agent* agent, const mjModel* model, mjData* data,
                          agent::SetAnythingResponse* response);

@@ -63,6 +63,8 @@ using ::agent::SetTaskParametersRequest;
 using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
+using ::agent::SetCtrlRequest;
+using ::agent::SetCtrlResponse;
 
 // task used to define desired behaviour
 mjpc::Task* task = nullptr;
@@ -355,6 +357,15 @@ grpc::Status AgentService::GetBestTrajectory(
 
   // TODO(taylor): improve return status
   return grpc::Status::OK;
+}
+
+grpc::Status AgentService::SetCtrl(grpc::ServerContext* context,
+                                   const SetCtrlRequest* request,
+                                   SetCtrlResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::SetCtrl(request, &agent_, model, data_);
 }
 
 grpc::Status AgentService::SetAnything(

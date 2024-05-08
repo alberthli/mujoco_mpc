@@ -50,6 +50,8 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Get all modes.
   rpc GetAllModes(GetAllModesRequest) returns (GetAllModesResponse);
+  // Set control.
+  rpc SetCtrl(SetCtrlRequest) returns (SetCtrlResponse);
 
   // Get best trajectory (states, actions, times).
   rpc GetBestTrajectory(GetBestTrajectoryRequest)
@@ -191,6 +193,14 @@ message SetModeRequest {
 message SetModeResponse {}
 
 message GetAllModesRequest {}
+
+message SetCtrlRequest {
+  // directly set the ctrl field of the MjData struct.
+  // used when manually simulating the system.
+  repeated double ctrl = 1 [packed = true];
+}
+
+message SetCtrlResponse {}
 
 message GetAllModesResponse {
   repeated string mode_names = 1;

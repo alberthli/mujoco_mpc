@@ -432,6 +432,14 @@ class AgentTest(parameterized.TestCase):
           "quaternions should be normalized",
       )
 
+  def test_set_ctrl(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "build/mjpc/tasks/particle/task_timevarying.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="ParticleFixed", model=model) as agent:
+      agent.set_ctrl([1, 2])
 
 if __name__ == "__main__":
   absltest.main()
