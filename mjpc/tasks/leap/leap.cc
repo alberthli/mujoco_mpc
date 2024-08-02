@@ -74,7 +74,8 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   // Sanity check
   CheckSensorDim(model, counter);
 }
-
+void Leap::SaveTrajectory(){
+}
 void Leap::TransitionLocked(mjModel *model, mjData *data) {
   // Compute the angle between the cube and the goal orientation
   double *cube_orientation = SensorByName(model, data, "cube_orientation");
@@ -201,6 +202,12 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   }
 
   if (on_floor || change_goal) {
+    // Save Trajectory
+    SaveTrajectory();
+    
+    // Clean up the trajectory variable
+    // TODO(@ali-bdai) Clean up the Traj struct vars
+
     // Reset stored data in the simulation
     mutex_.unlock();
     mj_forward(model, data);

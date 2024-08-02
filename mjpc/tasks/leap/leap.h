@@ -23,12 +23,22 @@
 
 #include "mjpc/task.h"
 
+struct Trajectory {
+  std::vector<double> cube_position;
+  std::vector<double> cube_orientation;
+  std::vector<double> cube_linear_velocity;
+  std::vector<double> control;
+  std::vector<double> nominal_pose;
+  std::vector<double> joint_velocity;
+};
+
 namespace mjpc {
 class Leap : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
-
+  void SaveTrajectory(); 
+  // figure out how to save into pkl.
   class ResidualFn : public BaseResidualFn {
    public:
     explicit ResidualFn(const Leap *task) : BaseResidualFn(task) {}
