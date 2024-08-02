@@ -112,6 +112,7 @@ FPS = 1.0 / model.opt.timestep
 # verbose
 VERBOSE = False
 
+u_init = None
 for _ in range(steps):
   ## predictive sampling
 
@@ -122,6 +123,9 @@ for _ in range(steps):
 
   # get action from policy
   data.ctrl = planner.action_from_policy(data.time)
+
+  write(data.qpos, data.qvel, spline_params_init, planner._parameters) # x, u_init, u_opt
+  u_init = planner._parameters
   # data.ctrl = np.random.normal(scale=0.1, size=model.nu)
 
   # reward
