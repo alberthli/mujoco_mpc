@@ -52,7 +52,7 @@ namespace mjpc
     void SetPlan(const mjpc::spline::TimeSpline &plan);
 
     // return sampling policy spline parameters
-    void Parameters(double *parameters) const;
+    void Parameters(double *parameters) const override;
 
     // ----- members ----- //
     const mjModel *model;

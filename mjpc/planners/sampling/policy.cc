@@ -54,15 +54,6 @@ namespace mjpc
         parameters[i * plan.Dim() + j] = node.values()[j];
       }
     }
-    // std::vector<double> parameters;
-    // for (int i = 0; i < num_spline_points; ++i)
-    // {
-    //   auto node = plan.NodeAt(i);
-    //   for (int j = 0; j < plan.Dim(); ++j)
-    //   {
-    //     parameters.push_back(node.values()[j]);
-    //   }
-    // }
   }
 
   // reset memory to zeros

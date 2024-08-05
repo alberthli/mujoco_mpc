@@ -52,12 +52,15 @@ print("Parameters:", agent.get_task_parameters())
 
 # %%
 # rollout horizon
-T = 150
+T = 1500
 
 # trajectories
 qpos = np.zeros((model.nq, T))
 qvel = np.zeros((model.nv, T))
 ctrl = np.zeros((model.nu, T - 1))
+# TODO(pculbert): add request for number of spline parameters.
+NUM_KNOT_POINTS = 10
+policy_parameters = np.zeros((model.nu, NUM_KNOT_POINTS, T - 1))
 time = np.zeros(T)
 
 # costs
@@ -101,6 +104,11 @@ for t in range(T - 1):
     data.ctrl = agent.get_action()
     ctrl[:, t] = data.ctrl
 
+    # set policy parameters
+    ### NEW BINDING ###
+    policy_parameters[:, :, t] = agent.get_policy_parameters().reshape(model.nu, NUM_KNOT_POINTS)
+    ###################
+
     # get costs
     cost_total[t] = agent.get_total_cost()
     for i, c in enumerate(agent.get_cost_term_values().items()):
@@ -119,8 +127,13 @@ for t in range(T - 1):
     pixels = renderer.render()
     frames.append(pixels)
 
+    # Store current poli
+
 # reset
 agent.reset()
+
+#### NEW BINDING ####
+
 
 # display video
 SLOWDOWN = 0.5

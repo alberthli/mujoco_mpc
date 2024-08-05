@@ -45,7 +45,7 @@ namespace mjpc
         // get policy parameters
         // general callback to return planner-specific policy parameters
         // do nothing if no parameters.
-        void Parameters(double *parameters) const
+        virtual void Parameters(double *parameters) const
         {
             // do nothing
         }

@@ -82,7 +82,7 @@ namespace mjpc
     void Traces(mjvScene *scn) override;
 
     // return parameters of current policy
-    void Parameters(double *parameters);
+    void Parameters(double *parameters) override;
 
     // planner-specific GUI elements
     void GUI(mjUI &ui) override;

@@ -51,10 +51,10 @@ namespace grpc_agent_util
   using ::agent::GetCostValuesAndWeightsResponse;
   using ::agent::GetModeRequest;
   using ::agent::GetModeResponse;
+  using ::agent::GetPolicyParametersRequest;
+  using ::agent::GetPolicyParametersResponse;
   using ::agent::GetResidualsRequest;
   using ::agent::GetResidualsResponse;
-  using ::agent::GetSamplingPolicyParametersRequest;
-  using ::agent::GetSamplingPolicyParametersResponse;
   using ::agent::GetStateResponse;
   using ::agent::GetTaskParametersRequest;
   using ::agent::GetTaskParametersResponse;
@@ -269,14 +269,14 @@ namespace grpc_agent_util
     return grpc::Status::OK;
   }
 
-  grpc::Status GetSamplingPolicyParameters(const GetSamplingPolicyParametersRequest *request,
-                                           const mjpc::Agent *agent,
-                                           GetSamplingPolicyParametersResponse *response)
+  grpc::Status GetPolicyParameters(const GetPolicyParametersRequest *request,
+                                   const mjpc::Agent *agent,
+                                   GetPolicyParametersResponse *response)
   {
     mjpc::Planner &planner = agent->ActivePlanner();
     std::vector<double> parameters(planner.NumParameters(), 0);
     planner.Parameters(parameters.data());
-    response->mutable_sampling_policy_parameters()->Assign(parameters.begin(), parameters.end());
+    response->mutable_policy_parameters()->Assign(parameters.begin(), parameters.end());
 
     return grpc::Status::OK;
   }

@@ -91,7 +91,7 @@ namespace mjpc
     void GUI(mjUI &ui) override;
 
     // return sampling policy parameters.
-    void Parameters(double *parameters);
+    void Parameters(double *parameters) override;
 
     // planner-specific plots
     void Plots(mjvFigure *fig_planner, mjvFigure *fig_timer, int planner_shift,
