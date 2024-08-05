@@ -20,41 +20,46 @@
 #include "mjpc/spline/spline.h"
 #include "mjpc/task.h"
 
-namespace mjpc {
+namespace mjpc
+{
 
-// policy for sampling planner
-class SamplingPolicy : public Policy {
- public:
-  // constructor
-  SamplingPolicy() = default;
+  // policy for sampling planner
+  class SamplingPolicy : public Policy
+  {
+  public:
+    // constructor
+    SamplingPolicy() = default;
 
-  // destructor
-  ~SamplingPolicy() override = default;
+    // destructor
+    ~SamplingPolicy() override = default;
 
-  // ----- methods ----- //
+    // ----- methods ----- //
 
-  // allocate memory
-  void Allocate(const mjModel* model, const Task& task, int horizon) override;
+    // allocate memory
+    void Allocate(const mjModel *model, const Task &task, int horizon) override;
 
-  // reset memory to zeros
-  void Reset(int horizon,
-             const double* initial_repeated_action = nullptr) override;
+    // reset memory to zeros
+    void Reset(int horizon,
+               const double *initial_repeated_action = nullptr) override;
 
-  // set action from policy
-  void Action(double* action, const double* state, double time) const override;
+    // set action from policy
+    void Action(double *action, const double *state, double time) const override;
 
-  // copy policy
-  void CopyFrom(const SamplingPolicy& policy, int horizon);
+    // copy policy
+    void CopyFrom(const SamplingPolicy &policy, int horizon);
 
-  // copy parameters
-  void SetPlan(const mjpc::spline::TimeSpline& plan);
+    // copy parameters
+    void SetPlan(const mjpc::spline::TimeSpline &plan);
 
-  // ----- members ----- //
-  const mjModel* model;
-  mjpc::spline::TimeSpline plan;
-  int num_spline_points;
-};
+    // return sampling policy spline parameters
+    void Parameters(double *parameters) const;
 
-}  // namespace mjpc
+    // ----- members ----- //
+    const mjModel *model;
+    mjpc::spline::TimeSpline plan;
+    int num_spline_points;
+  };
 
-#endif  // MJPC_PLANNERS_SAMPLING_POLICY_H_
+} // namespace mjpc
+
+#endif // MJPC_PLANNERS_SAMPLING_POLICY_H_

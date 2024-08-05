@@ -18,29 +18,39 @@
 #include <mujoco/mjmodel.h>
 #include "mjpc/task.h"
 
-namespace mjpc {
+namespace mjpc
+{
 
-// virtual policy
-class Policy {
- public:
-  // destructor
-  virtual ~Policy() = default;
+    // virtual policy
+    class Policy
+    {
+    public:
+        // destructor
+        virtual ~Policy() = default;
 
-  // allocate memory
-  virtual void Allocate(const mjModel* model, const Task& task,
-                        int horizon) = 0;
+        // allocate memory
+        virtual void Allocate(const mjModel *model, const Task &task,
+                              int horizon) = 0;
 
-  // reset memory to zeros
-  virtual void Reset(int horizon,
-                     const double* initial_repeated_action = nullptr) = 0;
+        // reset memory to zeros
+        virtual void Reset(int horizon,
+                           const double *initial_repeated_action = nullptr) = 0;
 
-  // set action from policy
-  // for policies that have a feedback term, passing nullptr for state  turns
-  // the feedback term off and returns the nominal action for that time
-  virtual void Action(double* action, const double* state,
-                      double time) const = 0;
-};
+        // set action from policy
+        // for policies that have a feedback term, passing nullptr for state  turns
+        // the feedback term off and returns the nominal action for that time
+        virtual void Action(double *action, const double *state,
+                            double time) const = 0;
 
-}  // namespace mjpc
+        // get policy parameters
+        // general callback to return planner-specific policy parameters
+        // do nothing if no parameters.
+        void Parameters(double *parameters) const
+        {
+            // do nothing
+        }
+    };
 
-#endif  // MJPC_PLANNERS_POLICY_H_
+} // namespace mjpc
+
+#endif // MJPC_PLANNERS_POLICY_H_

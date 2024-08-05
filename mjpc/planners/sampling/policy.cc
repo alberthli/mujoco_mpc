@@ -22,51 +22,81 @@
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
-namespace mjpc {
+namespace mjpc
+{
 
-using mjpc::spline::TimeSpline;
+  using mjpc::spline::TimeSpline;
 
-// allocate memory
-void SamplingPolicy::Allocate(const mjModel* model, const Task& task,
-                              int horizon) {
-  // model
-  this->model = model;
+  // allocate memory
+  void SamplingPolicy::Allocate(const mjModel *model, const Task &task,
+                                int horizon)
+  {
+    // model
+    this->model = model;
 
-  // spline points
-  num_spline_points = GetNumberOrDefault(kMaxTrajectoryHorizon, model,
-                                         "sampling_spline_points");
+    // spline points
+    num_spline_points = GetNumberOrDefault(kMaxTrajectoryHorizon, model,
+                                           "sampling_spline_points");
 
-  plan = TimeSpline(/*dim=*/model->nu);
-  plan.Reserve(num_spline_points);
-}
-
-// reset memory to zeros
-void SamplingPolicy::Reset(int horizon, const double* initial_repeated_action) {
-  plan.Clear();
-  if (initial_repeated_action != nullptr) {
-    plan.AddNode(0, absl::MakeConstSpan(initial_repeated_action, model->nu));
+    plan = TimeSpline(/*dim=*/model->nu);
+    plan.Reserve(num_spline_points);
   }
-}
 
-// set action from policy
-void SamplingPolicy::Action(double* action, const double* state,
-                            double time) const {
-  CHECK(action != nullptr);
-  plan.Sample(time, absl::MakeSpan(action, model->nu));
+  // write all of plan.values() to parameters.
+  void SamplingPolicy::Parameters(double *parameters) const
+  {
+    // loop over each node in plan
+    for (int i = 0; i < num_spline_points; ++i)
+    {
+      auto node = plan.NodeAt(i);
+      for (int j = 0; j < plan.Dim(); ++j)
+      {
+        parameters[i * plan.Dim() + j] = node.values()[j];
+      }
+    }
+    // std::vector<double> parameters;
+    // for (int i = 0; i < num_spline_points; ++i)
+    // {
+    //   auto node = plan.NodeAt(i);
+    //   for (int j = 0; j < plan.Dim(); ++j)
+    //   {
+    //     parameters.push_back(node.values()[j]);
+    //   }
+    // }
+  }
 
-  // Clamp controls
-  Clamp(action, model->actuator_ctrlrange, model->nu);
-}
+  // reset memory to zeros
+  void SamplingPolicy::Reset(int horizon, const double *initial_repeated_action)
+  {
+    plan.Clear();
+    if (initial_repeated_action != nullptr)
+    {
+      plan.AddNode(0, absl::MakeConstSpan(initial_repeated_action, model->nu));
+    }
+  }
 
-// copy policy
-void SamplingPolicy::CopyFrom(const SamplingPolicy& policy, int horizon) {
-  this->plan = policy.plan;
-  num_spline_points = policy.num_spline_points;
-}
+  // set action from policy
+  void SamplingPolicy::Action(double *action, const double *state,
+                              double time) const
+  {
+    CHECK(action != nullptr);
+    plan.Sample(time, absl::MakeSpan(action, model->nu));
 
-// copy parameters
-void SamplingPolicy::SetPlan(const TimeSpline& plan) {
-  this->plan = plan;
-}
+    // Clamp controls
+    Clamp(action, model->actuator_ctrlrange, model->nu);
+  }
 
-}  // namespace mjpc
+  // copy policy
+  void SamplingPolicy::CopyFrom(const SamplingPolicy &policy, int horizon)
+  {
+    this->plan = policy.plan;
+    num_spline_points = policy.num_spline_points;
+  }
+
+  // copy parameters
+  void SamplingPolicy::SetPlan(const TimeSpline &plan)
+  {
+    this->plan = plan;
+  }
+
+} // namespace mjpc

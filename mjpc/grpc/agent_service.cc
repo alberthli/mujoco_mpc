@@ -41,6 +41,8 @@ using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
 using ::agent::GetModeResponse;
+using ::agent::GetSamplingPolicyParametersRequest;
+using ::agent::GetSamplingPolicyParametersResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::GetTaskParametersRequest;
@@ -300,6 +302,15 @@ grpc::Status AgentService::GetMode(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::GetMode(request, &agent_, response);
+}
+
+grpc::Status AgentService::GetSamplingPolicyParameters(
+    grpc::ServerContext* context, const GetSamplingPolicyParametersRequest* request,
+    GetSamplingPolicyParametersResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetSamplingPolicyParameters(request, &agent_, response);
 }
 
 grpc::Status AgentService::GetAllModes(grpc::ServerContext* context,

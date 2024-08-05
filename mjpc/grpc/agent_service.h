@@ -58,6 +58,11 @@ class AgentService final : public agent::Agent::Service {
                          const agent::GetActionRequest* request,
                          agent::GetActionResponse* response) override;
 
+  grpc::Status GetSamplingPolicyParameters(
+      grpc::ServerContext* context,
+      const agent::GetSamplingPolicyParametersRequest* request,
+      agent::GetSamplingPolicyParametersResponse* response) override;
+
   grpc::Status GetResiduals(
       grpc::ServerContext* context,
       const agent::GetResidualsRequest* request,

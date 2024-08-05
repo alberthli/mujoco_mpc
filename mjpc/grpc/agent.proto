@@ -25,6 +25,8 @@ service Agent {
   rpc SetState(SetStateRequest) returns (SetStateResponse);
   // Get the current action from the Agent.
   rpc GetAction(GetActionRequest) returns (GetActionResponse);
+  // Get the current policy parameters from the Agent.
+  rpc GetSamplingPolicyParameters(GetSamplingPolicyParametersRequest) returns (GetSamplingPolicyParametersResponse);
   // Compute one plan step.
   rpc PlannerStep(PlannerStepRequest) returns (PlannerStepResponse);
   // Step physics once, using actions from the planner.
@@ -113,6 +115,11 @@ message GetActionRequest {
 
 message GetActionResponse {
   repeated float action = 1 [packed = true];
+}
+
+message GetSamplingPolicyParametersRequest {}
+message GetSamplingPolicyParametersResponse{
+  repeated double sampling_policy_parameters = 1 [packed = true];
 }
 
 message GetResidualsRequest {}

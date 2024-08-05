@@ -34,6 +34,9 @@ grpc::Status GetAction(const agent::GetActionRequest* request,
                        const mjModel* model, mjData* rollout_data,
                        mjpc::State* rollout_state,
                        agent::GetActionResponse* response);
+grpc::Status GetSamplingPolicyParameters(const agent::GetSamplingPolicyParametersRequest* request,
+                                 const mjpc::Agent* agent,
+                                 agent::GetSamplingPolicyParametersResponse* response);
 grpc::Status GetResiduals(
     const agent::GetResidualsRequest* request,
     const mjpc::Agent* agent, const mjModel* model, mjData* data,
