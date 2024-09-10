@@ -65,7 +65,7 @@ class Leap : public Task {
   absl::BitGen gen_;
 
   // Variables for counting rotations
-  int rotation_count_ = 0;
+  int rotation_count_ = -1;  // we start off by automatically counting a default rotation, so this is -1
   int best_rotation_count_ = 0;
   std::chrono::steady_clock::time_point time_of_last_reset_ =
       std::chrono::steady_clock::now();

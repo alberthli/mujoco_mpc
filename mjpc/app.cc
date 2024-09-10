@@ -41,7 +41,7 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-ABSL_FLAG(bool, planner_enabled, false,
+ABSL_FLAG(bool, planner_enabled, true,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
@@ -487,7 +487,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
       std::make_unique<mujoco::GlfwAdapter>(),
       std::make_shared<Agent>());
 
-  sim->run = false;  // [DEBUG] sets the simulator to start from paused state
+  sim->run = true;
   sim->agent->SetTaskList(std::move(tasks));
   sim->agent->gui_task_id = task_id;
 
