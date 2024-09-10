@@ -211,6 +211,11 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   //   rotation_count_ = 0;
   //   change_goal = true;
   // }
+  if (on_floor) {
+    time_of_last_reset_ = std::chrono::steady_clock::now();
+    rotation_count_ = 0;
+    change_goal = true;
+  }
 
   // Change the goal orientation if needed
   if (change_goal) {
