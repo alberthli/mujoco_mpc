@@ -19,7 +19,7 @@
     <numeric name="gradient_spline_points" data="6" />
     <numeric name="ilqg_num_rollouts" data="120" />
     <numeric name="ilqg_regularization_type" data="0" />
-    <numeric name="axis_aligned_goal" data="1" />
+    <numeric name="axis_aligned_goal" data="0" />
 
     <!-- cem -->
     <numeric name="n_elite" data="4" />
