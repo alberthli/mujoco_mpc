@@ -205,13 +205,16 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
           std::chrono::steady_clock::now() - time_of_last_rotation_)
           .count();
 
-  // [DEBUG] for now, disable the timeout
-  // if (on_floor || time_since_last_rotation_ > 60.0) {  // 60 second timeout
-  //   time_of_last_reset_ = std::chrono::steady_clock::now();
-  //   rotation_count_ = 0;
-  //   change_goal = true;
-  // }
+  // resetting logic
   if (on_floor) {
+    // Print timing statistics before resetting
+    std::cout << "Drop detected, resetting cube." << std::endl;
+    std::cout << "Rotations: " << rotation_count_ << std::endl;
+    std::cout << "Seconds per rotation: "
+              << time_since_last_reset_ / std::max(double(rotation_count_), 1.0)
+              << std::endl;
+
+    // Reset the cube and counters
     time_of_last_reset_ = std::chrono::steady_clock::now();
     rotation_count_ = 0;
     change_goal = true;
