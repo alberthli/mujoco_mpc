@@ -218,16 +218,20 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
 
   // resetting logic
   // [TEMP] remove the timeout logic after sim experiments are conducted
-  if (on_floor || time_since_last_reset_ > 80.0) {
+  if (on_floor || time_since_last_rotation_ > 80.0) {
     double time_print;
-    if (time_since_last_reset_ > 80.0) {
-      time_print = time_since_last_reset_ - 80.0;  // subtract the 80 seconds
+    if (time_since_last_rotation_ > 80.0) {
+      time_print = time_since_last_rotation_ - 80.0;  // subtract the 80 seconds
     } else {
-      time_print = time_since_last_reset_;
+      time_print = time_since_last_rotation_;
     }
 
     // Print timing statistics before resetting
-    std::cout << "Drop detected, resetting cube." << std::endl;
+    if (on_floor) {
+      std::cout << "Drop detected, resetting cube." << std::endl;
+    } else {
+      std::cout << "Timeout detected, resetting cube." << std::endl;
+    }
     std::cout << "Rotations: " << rotation_count_ << std::endl;
     std::cout << "Seconds per rotation: "
               << time_print / std::max(double(rotation_count_), 1.0)
