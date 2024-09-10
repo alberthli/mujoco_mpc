@@ -69,7 +69,7 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   if (x < x_min || x > x_max || y < y_min || y > y_max) {
       double theta = 0.349066;  // 20 degree palm tilt
       double z_min = x * std::tan(theta) - 0.035 / std::cos(theta);  // height of center of cube if flat
-      double z_max = z_min + 0.035;  // allow the cube to come up a bit
+      double z_max = z_min + 0.05;  // allow the cube to come up a bit
       z_closest = mju_max(z_min, mju_min(z, z_max));
   } else {
       double z_min = 0.015;
@@ -367,6 +367,15 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   parameters[2] = time_since_last_rotation_;
   parameters[3] =
       time_since_last_reset_ / std::max(double(rotation_count_), 1.0);
+
+  // [DEBUG]
+  double *cube_position = SensorByName(model, data, "cube_position");
+  double x = cube_position[0];
+  double y = cube_position[1];
+  double z = cube_position[2];
+  parameters[13] = x;
+  parameters[14] = y;
+  parameters[15] = z;
 }
 
 void Leap::ModifyState(const mjModel *model, State *state) {
