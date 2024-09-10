@@ -168,6 +168,17 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
     if (rotation_count_ > best_rotation_count_) {
       best_rotation_count_ = rotation_count_;
     }
+
+    // [TEMP] for sim experiments, if we have reached 150 rotations, then print the statistics
+    // ***************************************************************************************
+    if (rotation_count_ == 150) {
+      std::cout << "150 rotations reached without dropping!" << std::endl;
+      std::cout << "Rotations: " << rotation_count_ << std::endl;
+      std::cout << "Seconds per rotation: "
+                << time_since_last_reset_ / std::max(double(rotation_count_), 1.0)
+                << std::endl;
+    }
+    // ***************************************************************************************
   }
 
   // Figure out whether we dropped the cube
