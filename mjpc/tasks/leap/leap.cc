@@ -221,9 +221,9 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   if (on_floor || time_since_last_rotation_ > 80.0) {
     double time_print;
     if (time_since_last_rotation_ > 80.0) {
-      time_print = time_since_last_rotation_ - 80.0;  // subtract the 80 seconds
+      time_print = time_since_last_reset_ - time_since_last_rotation_;  // subtract the 80 seconds
     } else {
-      time_print = time_since_last_rotation_;
+      time_print = time_since_last_reset_;
     }
 
     // Print timing statistics before resetting
