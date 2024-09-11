@@ -55,7 +55,7 @@
   </custom>
 
   <!-- Set the camera viewpoint -->
-  <statistic extent="0.4" center="0.3 0.1 0" />
+  <statistic extent="0.4" center="0.2 0.1 0" />
   <visual>
     <quality shadowsize="8192" />
     <global azimuth="180" elevation="-30" offheight="376" offwidth="672" fovy="70"/>
