@@ -7,7 +7,7 @@
 
   <custom>
     <!-- agent -->
-    <numeric name="agent_planner" data="5" />
+    <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="1.0" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
@@ -32,8 +32,8 @@
     <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.001 0.0 0.4"/>
-    <numeric name="residual_Cube Pos Noise" data="0.0001 0.0 0.01"/>
+    <numeric name="residual_Cube Rot Noise" data="0.000 0.0 0.4"/>
+    <numeric name="residual_Cube Pos Noise" data="0.0000 0.0 0.01"/>
 
     <numeric name="residual_Cube Pos X Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Y Bias" data="-0.000 -0.02 0.02"/>
@@ -98,7 +98,7 @@
     </default>
     
     <!-- actuators -->
-    <position kp="0.25" kv="0.01" />
+    <position kp="0.2" kv="0.01" />
     <joint damping="0.03" frictionloss="0.001"/>
   </default>
 
