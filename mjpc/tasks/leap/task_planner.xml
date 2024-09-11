@@ -46,7 +46,7 @@
     <numeric name="residual_EMA alpha" data="0.1 0.0 1.0" />
 
     <!-- lag -->
-    <numeric name="residual_Lag steps" data="50 0 1000" />
+    <numeric name="residual_Lag steps" data="0 0 1000" />
 
     <!-- [DEBUG] -->
     <numeric name="residual_Cube Pos X" data="0.0 0.0 0.0"/>
