@@ -32,8 +32,8 @@
     <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.00 0.0 0.4"/>
-    <numeric name="residual_Cube Pos Noise" data="0.00 0.0 0.01"/>
+    <numeric name="residual_Cube Rot Noise" data="0.01 0.0 0.4"/>
+    <numeric name="residual_Cube Pos Noise" data="0.001 0.0 0.01"/>
 
     <numeric name="residual_Cube Pos X Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Y Bias" data="-0.000 -0.02 0.02"/>
@@ -46,7 +46,7 @@
     <numeric name="residual_EMA alpha" data="0.1 0.0 1.0" />
 
     <!-- lag -->
-    <numeric name="residual_Lag steps" data="0 0 1000" />
+    <numeric name="residual_Lag steps" data="25 0 1000" />
 
     <!-- [DEBUG] -->
     <numeric name="residual_Cube Pos X" data="0.0 0.0 0.0"/>
@@ -98,7 +98,7 @@
     </default>
     
     <!-- actuators -->
-    <position kp="0.3" kv="0.01" />
+    <position kp="0.2" kv="0.01" />
     <joint damping="0.03" frictionloss="0.001"/>
   </default>
 
