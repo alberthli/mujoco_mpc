@@ -7,7 +7,7 @@
 
   <custom>
     <!-- agent -->
-    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="1.0" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
