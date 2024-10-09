@@ -32,8 +32,8 @@
     <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.000 0.0 0.4"/>
-    <numeric name="residual_Cube Pos Noise" data="0.0000 0.0 0.01"/>
+    <numeric name="residual_Cube Rot Noise" data="0.000 0.0 0.005"/>
+    <numeric name="residual_Cube Pos Noise" data="0.0000 0.0 0.001"/>
 
     <numeric name="residual_Cube Pos X Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Y Bias" data="-0.000 -0.02 0.02"/>
