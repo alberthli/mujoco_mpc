@@ -59,20 +59,14 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double x_closest = mju_max(x_min, mju_min(x, x_max));
   double y_closest = mju_max(y_min, mju_min(y, y_max));
 
-  // double dist =
-  //     std::sqrt(std::pow(x_closest - cube_position[0], 2) + std::pow(y_closest - cube_position[1], 2));
-
-  // if (z <= 0.15 && x <= x_min && x >= x_max && y <= y_min && y >= y_max) {
-  //   dist += 10.0;  // dropping is bad
-  // }
   double z_closest;
   if (x < x_min || x > x_max || y < y_min || y > y_max) {
       double theta = 0.349066;  // 20 degree palm tilt
-      double z_min = x * std::tan(theta) - 0.035 / std::cos(theta);  // height of center of cube if flat
+      double z_min = -x * std::tan(theta) + 0.035 / std::cos(theta);  // height of center of cube if flat
       double z_max = z_min + 0.035;  // allow the cube to come up a bit
       z_closest = mju_max(z_min, mju_min(z, z_max));
   } else {
-      double z_min = 0.015;
+      double z_min = -0.015;
       z_closest = mju_max(z_min, z);
   }
 
@@ -205,12 +199,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
           std::chrono::steady_clock::now() - time_of_last_rotation_)
           .count();
 
-  // [DEBUG] for now, disable the timeout
-  // if (on_floor || time_since_last_rotation_ > 60.0) {  // 60 second timeout
-  //   time_of_last_reset_ = std::chrono::steady_clock::now();
-  //   rotation_count_ = 0;
-  //   change_goal = true;
-  // }
+  // resetting logic
   if (on_floor) {
     time_of_last_reset_ = std::chrono::steady_clock::now();
     rotation_count_ = 0;

@@ -19,7 +19,7 @@
     <numeric name="gradient_spline_points" data="6" />
     <numeric name="ilqg_num_rollouts" data="120" />
     <numeric name="ilqg_regularization_type" data="0" />
-    <numeric name="axis_aligned_goal" data="1" />
+    <numeric name="axis_aligned_goal" data="0" />
 
     <!-- cem -->
     <numeric name="n_elite" data="4" />
@@ -84,7 +84,7 @@
       directional="true" castshadow="true" />
     <geom name="floor" pos="0 0 -0.25" size="0 0 0.05" type="plane" material="blue_grid" />
     <body name="goal" mocap="true" pos="0.325 0.17 0.0475">
-      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" friction=".5 0.05 0.0002"/>
+      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0"/>
     </body>
 
     <!-- adding cameras for simulated rendering -->
