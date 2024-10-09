@@ -29,6 +29,7 @@
 #include "mjpc/tasks/humanoid/stand/stand.h"
 #include "mjpc/tasks/humanoid/tracking/tracking.h"
 #include "mjpc/tasks/humanoid/walk/walk.h"
+#include "mjpc/tasks/leap/leap.h"
 #include "mjpc/tasks/manipulation/manipulation.h"
 // DEEPMIND INTERNAL IMPORT
 #include "mjpc/tasks/op3/stand.h"
@@ -41,7 +42,8 @@
 #include "mjpc/tasks/swimmer/swimmer.h"
 #include "mjpc/tasks/walker/walker.h"
 
-namespace mjpc {
+namespace mjpc
+{
 
 std::vector<std::shared_ptr<Task>> GetTasks() {
   return {
@@ -56,13 +58,14 @@ std::vector<std::shared_ptr<Task>> GetTasks() {
       std::make_shared<humanoid::Stand>(),
       std::make_shared<humanoid::Tracking>(),
       std::make_shared<humanoid::Walk>(),
+      std::make_shared<Leap>(),
       std::make_shared<manipulation::Bring>(),
       // DEEPMIND INTERNAL TASKS
       std::make_shared<OP3>(),
       std::make_shared<Panda>(),
       std::make_shared<Particle>(),
       std::make_shared<ParticleFixed>(),
-      std::make_shared<Rubik>(),
+      // std::make_shared<Rubik>(),
       std::make_shared<ShadowReorient>(),
       std::make_shared<Quadrotor>(),
       std::make_shared<QuadrupedFlat>(),

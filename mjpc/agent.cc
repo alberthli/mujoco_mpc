@@ -14,6 +14,16 @@
 
 #include "mjpc/agent.h"
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
+#include <mujoco/mjmodel.h>
+#include <mujoco/mjui.h>
+#include <mujoco/mjvisualize.h>
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -25,15 +35,6 @@
 #include <string_view>
 #include <utility>
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_join.h>
-#include <absl/strings/str_split.h>
-#include <absl/strings/strip.h>
-#include <mujoco/mjmodel.h>
-#include <mujoco/mjui.h>
-#include <mujoco/mjvisualize.h>
-#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
@@ -48,7 +49,7 @@ namespace mju = ::mujoco::util_mjpc;
 namespace {
 // ----- agent constants ----- //
 inline constexpr double kMinTimeStep = 1.0e-4;
-inline constexpr double kMaxTimeStep = 0.1;
+inline constexpr double kMaxTimeStep = 0.01;
 inline constexpr double kMinPlanningHorizon = 1.0e-5;
 inline constexpr double kMaxPlanningHorizon = 2.5;
 
@@ -68,10 +69,20 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
 }
 
 // initialize data, settings, planners, state
-void Agent::Initialize(const mjModel* model) {
+void Agent::Initialize(const mjModel* model, const mjModel* estimator_model) {
   // ----- model ----- //
+
+  // planner model
   mjModel* old_model = model_;
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
+
+  // estimator model
+  if (model_estimator_) mj_deleteModel(model_estimator_);
+  if (estimator_model) {
+    model_estimator_ = mj_copyModel(nullptr, estimator_model);
+  } else {
+    model_estimator_ = mj_copyModel(nullptr, model);
+  }
 
   // check for limits on all actuators
   int num_missing = 0;
@@ -120,7 +131,7 @@ void Agent::Initialize(const mjModel* model) {
   // initialize estimator
   if (reset_estimator && estimator_enabled) {
     for (const auto& estimator : estimators_) {
-      estimator->Initialize(model_);
+      estimator->Initialize(model_estimator_);
       estimator->Reset();
     }
   }
@@ -204,9 +215,7 @@ void Agent::Reset(const double* initial_repeated_action) {
   std::fill(terms_.begin(), terms_.end(), 0.0);
 }
 
-void Agent::SetState(const mjData* data) {
-  state.Set(model_, data);
-}
+void Agent::SetState(const mjData* data) { state.Set(model_, data); }
 
 int Agent::GetTaskIdByName(std::string_view name) const {
   for (int i = 0; i < tasks_.size(); i++) {
@@ -217,7 +226,7 @@ int Agent::GetTaskIdByName(std::string_view name) const {
   return -1;
 }
 
-Agent::LoadModelResult Agent::LoadModel() const {
+Agent::LoadModelResult Agent::LoadModel(std::string in_filename) const {
   // if user specified a custom model, use that.
   mjModel* mnew = nullptr;
   constexpr int kErrorLength = 1024;
@@ -227,7 +236,12 @@ Agent::LoadModelResult Agent::LoadModel() const {
     mnew = mj_copyModel(nullptr, model_override_.get());
   } else {
     // otherwise use the task's model
-    std::string filename = tasks_[gui_task_id]->XmlPath();
+    std::string filename;
+    if (in_filename.empty()) {
+      filename = tasks_[gui_task_id]->XmlPath();
+    } else {
+      filename = in_filename;
+    }
     // make sure filename is not empty
     if (filename.empty()) {
       return {};
@@ -239,8 +253,7 @@ Agent::LoadModelResult Agent::LoadModel() const {
         mju::strcpy_arr(load_error, "could not load binary model");
       }
     } else {
-      mnew = mj_loadXML(filename.c_str(), nullptr, load_error,
-                        kErrorLength);
+      mnew = mj_loadXML(filename.c_str(), nullptr, load_error, kErrorLength);
       // remove trailing newline character from load_error
       if (load_error[0]) {
         int error_length = mju::strlen_arr(load_error);
@@ -250,8 +263,7 @@ Agent::LoadModelResult Agent::LoadModel() const {
       }
     }
   }
-  return {.model = {mnew, mj_deleteModel},
-          .error = load_error};
+  return {.model = {mnew, mj_deleteModel}, .error = load_error};
 }
 
 void Agent::OverrideModel(UniqueMjModel model) {
@@ -276,8 +288,7 @@ void Agent::PlanIteration(ThreadPool* pool) {
   model_->opt.integrator = integrator_;
 
   // set planning steps
-  steps_ =
-      mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
+  steps_ = mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
 
   // plan
   if (!allocate_enabled) {
@@ -335,19 +346,19 @@ void Agent::RunBeforeStep(StepJob job) {
 
 void Agent::ExecuteAllRunBeforeStepJobs(const mjModel* model, mjData* data) {
   while (true) {
-      StepJob step_job;
-      {
-        // only hold the lock while reading from the queue and not while
-        // executing the jobs
-        std::lock_guard<std::mutex> lock(step_jobs_mutex_);
-        if (step_jobs_.empty()) {
-          break;
-        }
-        step_job = std::move(step_jobs_.front());
-        step_jobs_.pop_front();
+    StepJob step_job;
+    {
+      // only hold the lock while reading from the queue and not while
+      // executing the jobs
+      std::lock_guard<std::mutex> lock(step_jobs_mutex_);
+      if (step_jobs_.empty()) {
+        break;
       }
-      step_job(this, model, data);
+      step_job = std::move(step_jobs_.front());
+      step_jobs_.pop_front();
     }
+    step_job(this, model, data);
+  }
 }
 
 int Agent::SetParamByName(std::string_view name, double value) {
@@ -505,17 +516,16 @@ void Agent::ModifyScene(mjvScene* scn) {
 
       // initialize geometry
       mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, zero3, zero3, zero9,
-                  color);
+                   color);
 
       // make geometry
-      mjv_makeConnector(
-          &scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
-          winner->trace[3 * num_trace * i + 3 * j],
-          winner->trace[3 * num_trace * i + 1 + 3 * j],
-          winner->trace[3 * num_trace * i + 2 + 3 * j],
-          winner->trace[3 * num_trace * (i + 1) + 3 * j],
-          winner->trace[3 * num_trace * (i + 1) + 1 + 3 * j],
-          winner->trace[3 * num_trace * (i + 1) + 2 + 3 * j]);
+      mjv_makeConnector(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
+                        winner->trace[3 * num_trace * i + 3 * j],
+                        winner->trace[3 * num_trace * i + 1 + 3 * j],
+                        winner->trace[3 * num_trace * i + 2 + 3 * j],
+                        winner->trace[3 * num_trace * (i + 1) + 3 * j],
+                        winner->trace[3 * num_trace * (i + 1) + 1 + 3 * j],
+                        winner->trace[3 * num_trace * (i + 1) + 2 + 3 * j]);
       // increment number of geometries
       scn->ngeom += 1;
     }
@@ -939,9 +949,7 @@ void Agent::PlotReset() {
 }
 
 // return horizon (continuous time)
-double Agent::Horizon() const {
-  return horizon_;
-}
+double Agent::Horizon() const { return horizon_; }
 
 // plot current information
 void Agent::Plots(const mjData* data, int shift) {
@@ -1078,7 +1086,7 @@ void Agent::Plots(const mjData* data, int shift) {
   if (!plan_enabled) return;
 
   // planner-specific plotting
-  int planner_shift[2] {0, 0};
+  int planner_shift[2]{0, 0};
   ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled,
                         planner_shift);
 
