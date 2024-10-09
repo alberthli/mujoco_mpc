@@ -330,15 +330,6 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   parameters[2] = time_since_last_rotation_;
   parameters[3] =
       time_since_last_reset_ / std::max(double(rotation_count_), 1.0);
-
-  // [DEBUG]
-  double *cube_position = SensorByName(model, data, "cube_position");
-  double x = cube_position[0];
-  double y = cube_position[1];
-  double z = cube_position[2];
-  parameters[13] = x;
-  parameters[14] = y;
-  parameters[15] = z;
 }
 
 void Leap::ModifyState(const mjModel *model, State *state) {
